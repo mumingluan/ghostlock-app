@@ -13,6 +13,7 @@ object ProfileResolver {
         "release", "schema_version", "kernel_major", "recommend_shizuku",
         "route", "fallback", "kernelsnitch", "task_struct", "cred", "offset",
         "kernel_phys_load", "kernel_phys_offset", "execution",
+        "recommend_vr_guard", "vr_guard",
     )
     private val RequiredTopLevel = setOf(
         "release", "schema_version", "kernel_major", "route", "task_struct", "cred", "offset",
@@ -129,6 +130,22 @@ object ProfileResolver {
                     }
                 }
             }
+        }
+        val vivoTarget = profile.getLongAt("offset.sys_exit_tp_funcs")
+        val vivoRequired = (profile.getLongAt("recommend_vr_guard") ?: 0L) != 0L
+        if (vivoRequired && vivoTarget == null) {
+            errors += ConfigError("offset.sys_exit_tp_funcs", "required by recommend_vr_guard")
+        }
+        if (vivoTarget != null && (vivoTarget <= 0L || vivoTarget > 0xffffffffL || vivoTarget % 8L != 0L)) {
+            errors += ConfigError("offset.sys_exit_tp_funcs", "expected a positive aligned u32 image offset")
+        }
+        val tracepoint = profile.getLongAt("offset.vr_sys_exit_tp")
+        val funcs = profile.getLongAt("vr_guard.tracepoint_funcs")
+        if (vivoTarget != null && tracepoint != null && funcs != null &&
+            (tracepoint <= 0L || tracepoint > 0xffffffffL || funcs < 0L || funcs > 4096L ||
+                tracepoint + funcs != vivoTarget)
+        ) {
+            errors += ConfigError("offset.sys_exit_tp_funcs", "inconsistent tracepoint layout")
         }
         return errors
     }

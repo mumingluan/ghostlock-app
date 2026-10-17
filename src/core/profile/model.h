@@ -106,6 +106,8 @@ namespace ghostlock::profile {
         uint64_t root_task_group = 0, selinux_enforcing = 0;
         uint64_t selinux_blob_sizes = 0, security_hook_heads = 0;
         uint64_t slide_nfulnl_logger = 0, slide_loggers_0_1 = 0, slide_boot_id = 0;
+        /* Opt-in image-relative target from a verified vivo profile. */
+        std::optional<uint64_t> sys_exit_tp_funcs;
     };
 
     struct KernelMisc {
@@ -204,6 +206,15 @@ namespace ghostlock::profile {
         }
 
         [[nodiscard]] bool loaded() const noexcept { return loaded_; }
+
+        [[nodiscard]] std::optional<uint64_t> vivo_sys_exit_offset() const noexcept {
+            return loaded_ ? values_.offsets.sys_exit_tp_funcs : std::nullopt;
+        }
+
+        [[nodiscard]] bool vivo_sys_exit_offset_valid() const noexcept {
+            const auto offset = vivo_sys_exit_offset();
+            return !offset || (*offset != 0 && *offset <= UINT32_MAX && (*offset & 7U) == 0);
+        }
 
         [[nodiscard]] RouteKind route() const noexcept {
             return loaded_ ? static_cast<RouteKind>(values_.route) : RouteKind::Auto;

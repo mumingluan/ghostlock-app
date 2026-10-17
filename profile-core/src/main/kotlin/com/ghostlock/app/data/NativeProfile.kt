@@ -203,7 +203,7 @@ data class NativeProfileDocument(
         "slide_nfulnl_logger" to kernelOffset.slideNfulnlLogger,
         "slide_loggers_0_1" to kernelOffset.slideLoggers01,
         "slide_boot_id" to kernelOffset.slideBootId,
-    )
+    ) + listOfNotNull(kernelOffset.sysExitTpFuncs?.let { "sys_exit_tp_funcs" to it })
 
     private fun kernelSection(): Section? {
         val entries = buildList {
@@ -400,6 +400,7 @@ data class NativeProfileDocument(
                     slideNfulnlLogger = vul("offset.slide_nfulnl_logger"),
                     slideLoggers01 = vul("offset.slide_loggers_0_1"),
                     slideBootId = vul("offset.slide_boot_id"),
+                    sysExitTpFuncs = vulOrNull("offset.sys_exit_tp_funcs"),
                 ),
                 kernelPhysLoad = vulOrNull("kernel_phys_load"),
                 kernelPhysOffset = vulOrNull("kernel_phys_offset"),
@@ -519,6 +520,7 @@ data class NativeProfileDocument(
                         "slide_nfulnl_logger" -> offsets.copy(slideNfulnlLogger = raw)
                         "slide_loggers_0_1" -> offsets.copy(slideLoggers01 = raw)
                         "slide_boot_id" -> offsets.copy(slideBootId = raw)
+                        "sys_exit_tp_funcs" -> offsets.copy(sysExitTpFuncs = raw)
                         else -> offsets
                     }
 
@@ -678,6 +680,7 @@ data class KernelOffsetTable(
     val slideNfulnlLogger: ULong = 0uL,
     val slideLoggers01: ULong = 0uL,
     val slideBootId: ULong = 0uL,
+    val sysExitTpFuncs: ULong? = null,
 )
 
 data class ExecutionTuning(

@@ -867,7 +867,7 @@ internal class AndroidProfileConfigController(
         private val OffsetFieldNames = listOf(
             "init_task", "init_cred", "empty_zero_page", "root_task_group", "selinux_enforcing",
             "selinux_blob_sizes", "security_hook_heads", "slide_nfulnl_logger", "slide_loggers_0_1",
-            "slide_boot_id",
+            "slide_boot_id", "sys_exit_tp_funcs",
         )
         private val KernelsnitchFieldNames = listOf("collisions", "mm_struct_sz")
 
