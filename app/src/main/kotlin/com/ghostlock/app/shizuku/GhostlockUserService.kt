@@ -54,7 +54,7 @@ class GhostlockUserService(private val context: Context) : IGhostlockUserService
                 val binary = File(context.applicationInfo.nativeLibraryDir, "libghostlock.so")
                 require(binary.isFile) { "missing GhostLock binary: ${binary.absolutePath}" }
 
-                val workDir = File("/data/local/tmp/ghostlock-app").apply {
+                val workDir = File("/data/local/tmp/${context.packageName}").apply {
                     require(isDirectory || mkdirs()) { "cannot create $absolutePath" }
                 }
                 callback.onLog("<s> Shizuku ready: uid=${Process.myUid()} Seccomp=0")
