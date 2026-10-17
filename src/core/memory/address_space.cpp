@@ -82,9 +82,22 @@ namespace ghostlock::memory {
         init_cred_image = *image;
         /* DRAM base for the image->direct-map translation: profile override
          * wins, otherwise the compiled P0 default keeps every existing
-         * device byte-identical. */
-        phys_offset = static_cast<uintptr_t>(
-            values->misc.kernel_phys_offset.value_or(kernel::P0_PHYS_OFFSET));
+         * device byte-identical. The linear-map base (memstart_addr) is
+         * always aligned down to a GiB by the kernel, so an unaligned
+         * override cannot be a valid PHYS_OFFSET; a mis-derived value here
+         * (e.g. the first System RAM bank instead of the DRAM base) would
+         * shift every kernel write and crash the device, so reject it. */
+        constexpr uint64_t kDramBaseAlign = 1ULL << 30; /* GiB, memstart_addr */
+        if (values->misc.kernel_phys_offset) {
+            const uintptr_t candidate = static_cast<uintptr_t>(*values->misc.kernel_phys_offset);
+            if (candidate == 0 || (candidate & (kDramBaseAlign - 1)) != 0) {
+                errno = EINVAL;
+                return -1;
+            }
+            phys_offset = candidate;
+        } else {
+            phys_offset = kernel::P0_PHYS_OFFSET;
+        }
         if (values->misc.kernel_phys_load.value_or(0)) {
             kernel_phys_load = target::KernelAddress<target::PhysicalAddressDomain>(
                 values->misc.kernel_phys_load.value_or(0));

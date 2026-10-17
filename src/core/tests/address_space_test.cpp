@@ -69,6 +69,35 @@ int main() {
         assert(addresses.phys_offset == P0_PHYS_OFFSET);
     }
 
+    /* A DRAM base must be GiB-aligned (memstart_addr semantics): the iQOO 15
+     * profile shipped 0x81960000 — the first System RAM bank from
+     * /proc/iomem, not the DRAM base — which shifted every kernel write and
+     * crashed the device in three consecutive runs. Unaligned and zero
+     * overrides are rejected instead of reaching the write path. */
+    {
+        const auto transport = make_transport(0x1000, 0xc7800000ULL, 0x81960000ULL);
+        ghostlock::profile::TargetProfile profile(transport);
+        ResolvedAddresses addresses;
+        assert(addresses.init_for_soc(&profile, SocFamily::Qcom) == -1);
+    }
+
+    {
+        const auto transport = make_transport(0x1000, 0xc7800000ULL, 0ULL);
+        ghostlock::profile::TargetProfile profile(transport);
+        ResolvedAddresses addresses;
+        assert(addresses.init_for_soc(&profile, SocFamily::Qcom) == -1);
+    }
+
+    /* The corrected value (0x80000000) passes and matches the compiled
+     * default's translation. */
+    {
+        const auto transport = make_transport(0x1000, 0xc7800000ULL, 0x80000000ULL);
+        ghostlock::profile::TargetProfile profile(transport);
+        ResolvedAddresses addresses;
+        assert(addresses.init_for_soc(&profile, SocFamily::Qcom) == 0);
+        assert(addresses.phys_offset == P0_PHYS_OFFSET);
+    }
+
     std::puts("address_space_test: ok");
     return 0;
 }
