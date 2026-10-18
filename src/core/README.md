@@ -77,3 +77,15 @@ Where the pieces live:
   function disassembly gate (runs for attack-path changes).
 - Session ownership: the per-field owner / borrower / release / termination
   table lives in `session/exploit_session.hpp`.
+
+## KSU startup completion
+
+The detached root worker owns `late-load` and its completion. The shell in
+`attack/ksu_startup_script.hpp` tags each invocation with a unique argv0, waits
+up to 120 seconds for that daemon to exit, and requests `ksud soft-reboot` once
+per boot. KSU performs the full module stages, including `post-fs-data`. Safe
+mode and an already-loaded driver preserve the existing behavior. Driver
+readiness remains separate from module initialization; a successful asynchronous
+request is not reported as a completed reboot. See
+[the startup plan](../../docs/analysis/ksu-soft-reboot-plan.md) for the flow and
+verification status.
